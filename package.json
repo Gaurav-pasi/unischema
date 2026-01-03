@@ -1,16 +1,16 @@
 {
-  "name": "formschema",
+  "name": "unischema",
   "version": "1.0.0",
   "description": "Schema-Driven, Isomorphic Form & Validation Engine",
   "author": "Gaurav Pasi <gauravpasi9594@gmail.com>",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Gaurav-pasi/FormSchema-.git"
+    "url": "git+https://github.com/Gaurav-pasi/unischema.git"
   },
-  "homepage": "https://github.com/Gaurav-pasi/FormSchema-#readme",
+  "homepage": "https://github.com/Gaurav-pasi/unischema#readme",
   "bugs": {
-    "url": "https://github.com/Gaurav-pasi/FormSchema-/issues"
+    "url": "https://github.com/Gaurav-pasi/unischema/issues"
   },
   "main": "dist/index.js",
   "module": "dist/index.mjs",
