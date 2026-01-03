@@ -86,6 +86,54 @@ export class BaseFieldBuilder<T> {
   }
 
   /**
+   * Field must not match another field
+   */
+  notMatches(field: string, message?: string): this {
+    this._rules.push({
+      type: 'notMatches',
+      params: { field },
+      message,
+    });
+    return this;
+  }
+
+  /**
+   * Field must be greater than another field (for numbers)
+   */
+  greaterThan(field: string, message?: string): this {
+    this._rules.push({
+      type: 'greaterThan',
+      params: { field },
+      message,
+    });
+    return this;
+  }
+
+  /**
+   * Field must be less than another field (for numbers)
+   */
+  lessThan(field: string, message?: string): this {
+    this._rules.push({
+      type: 'lessThan',
+      params: { field },
+      message,
+    });
+    return this;
+  }
+
+  /**
+   * Field depends on another field being set
+   */
+  dependsOn(field: string, message?: string): this {
+    this._rules.push({
+      type: 'dependsOn',
+      params: { field },
+      message,
+    });
+    return this;
+  }
+
+  /**
    * Build the field definition
    */
   build(): FieldDefinition<T> {
@@ -186,6 +234,164 @@ export class StringFieldBuilder extends BaseFieldBuilder<string> {
   ipAddress(message?: string): this {
     this._rules.push({
       type: 'ipAddress',
+      message,
+    });
+    return this;
+  }
+
+  /**
+   * Validate as IPv6 address
+   */
+  ipv6(message?: string): this {
+    this._rules.push({
+      type: 'ipv6',
+      message,
+    });
+    return this;
+  }
+
+  /**
+   * Only alphabetic characters (a-zA-Z)
+   */
+  alpha(message?: string): this {
+    this._rules.push({
+      type: 'alpha',
+      message,
+    });
+    return this;
+  }
+
+  /**
+   * Only alphanumeric characters (a-zA-Z0-9)
+   */
+  alphanumeric(message?: string): this {
+    this._rules.push({
+      type: 'alphanumeric',
+      message,
+    });
+    return this;
+  }
+
+  /**
+   * Only numeric digits
+   */
+  numeric(message?: string): this {
+    this._rules.push({
+      type: 'numeric',
+      message,
+    });
+    return this;
+  }
+
+  /**
+   * Must be lowercase
+   */
+  lowercase(message?: string): this {
+    this._rules.push({
+      type: 'lowercase',
+      message,
+    });
+    return this;
+  }
+
+  /**
+   * Must be uppercase
+   */
+  uppercase(message?: string): this {
+    this._rules.push({
+      type: 'uppercase',
+      message,
+    });
+    return this;
+  }
+
+  /**
+   * URL-friendly slug (lowercase, alphanumeric, hyphens)
+   */
+  slug(message?: string): this {
+    this._rules.push({
+      type: 'slug',
+      message,
+    });
+    return this;
+  }
+
+  /**
+   * Hexadecimal string
+   */
+  hex(message?: string): this {
+    this._rules.push({
+      type: 'hex',
+      message,
+    });
+    return this;
+  }
+
+  /**
+   * Base64 encoded string
+   */
+  base64(message?: string): this {
+    this._rules.push({
+      type: 'base64',
+      message,
+    });
+    return this;
+  }
+
+  /**
+   * Valid JSON string
+   */
+  json(message?: string): this {
+    this._rules.push({
+      type: 'json',
+      message,
+    });
+    return this;
+  }
+
+  /**
+   * Exact length
+   */
+  length(len: number, message?: string): this {
+    this._rules.push({
+      type: 'length',
+      params: { length: len },
+      message,
+    });
+    return this;
+  }
+
+  /**
+   * Must contain substring
+   */
+  contains(substring: string, message?: string): this {
+    this._rules.push({
+      type: 'contains',
+      params: { substring },
+      message,
+    });
+    return this;
+  }
+
+  /**
+   * Must start with prefix
+   */
+  startsWith(prefix: string, message?: string): this {
+    this._rules.push({
+      type: 'startsWith',
+      params: { prefix },
+      message,
+    });
+    return this;
+  }
+
+  /**
+   * Must end with suffix
+   */
+  endsWith(suffix: string, message?: string): this {
+    this._rules.push({
+      type: 'endsWith',
+      params: { suffix },
       message,
     });
     return this;
@@ -387,6 +593,130 @@ export class NumberFieldBuilder extends BaseFieldBuilder<number> {
   }
 
   /**
+   * Must be a valid port number (0-65535)
+   */
+  port(message?: string): this {
+    this._rules.push({
+      type: 'port',
+      message,
+    });
+    return this;
+  }
+
+  /**
+   * Must be a valid latitude (-90 to 90)
+   */
+  latitude(message?: string): this {
+    this._rules.push({
+      type: 'latitude',
+      message,
+    });
+    return this;
+  }
+
+  /**
+   * Must be a valid longitude (-180 to 180)
+   */
+  longitude(message?: string): this {
+    this._rules.push({
+      type: 'longitude',
+      message,
+    });
+    return this;
+  }
+
+  /**
+   * Must be a percentage (0-100)
+   */
+  percentage(message?: string): this {
+    this._rules.push({
+      type: 'percentage',
+      message,
+    });
+    return this;
+  }
+
+  /**
+   * Must be between min and max (inclusive)
+   */
+  between(min: number, max: number, message?: string): this {
+    this._rules.push({
+      type: 'numberBetween',
+      params: { min, max },
+      message,
+    });
+    return this;
+  }
+
+  /**
+   * Must be divisible by a number
+   */
+  divisibleBy(divisor: number, message?: string): this {
+    this._rules.push({
+      type: 'divisibleBy',
+      params: { divisor },
+      message,
+    });
+    return this;
+  }
+
+  /**
+   * Must be a multiple of a number
+   */
+  multipleOf(multiple: number, message?: string): this {
+    this._rules.push({
+      type: 'multipleOf',
+      params: { multiple },
+      message,
+    });
+    return this;
+  }
+
+  /**
+   * Must be an even number
+   */
+  even(message?: string): this {
+    this._rules.push({
+      type: 'even',
+      message,
+    });
+    return this;
+  }
+
+  /**
+   * Must be an odd number
+   */
+  odd(message?: string): this {
+    this._rules.push({
+      type: 'odd',
+      message,
+    });
+    return this;
+  }
+
+  /**
+   * Must be a safe integer
+   */
+  safe(message?: string): this {
+    this._rules.push({
+      type: 'safe',
+      message,
+    });
+    return this;
+  }
+
+  /**
+   * Must be a finite number
+   */
+  finite(message?: string): this {
+    this._rules.push({
+      type: 'finite',
+      message,
+    });
+    return this;
+  }
+
+  /**
    * Add a soft validation with message
    */
   soft(message: string): this {
@@ -536,6 +866,118 @@ export class DateFieldBuilder extends BaseFieldBuilder<Date> {
     });
     return this;
   }
+
+  /**
+   * Must be today
+   */
+  today(message?: string): this {
+    this._rules.push({
+      type: 'today',
+      message,
+    });
+    return this;
+  }
+
+  /**
+   * Must be yesterday
+   */
+  yesterday(message?: string): this {
+    this._rules.push({
+      type: 'yesterday',
+      message,
+    });
+    return this;
+  }
+
+  /**
+   * Must be tomorrow
+   */
+  tomorrow(message?: string): this {
+    this._rules.push({
+      type: 'tomorrow',
+      message,
+    });
+    return this;
+  }
+
+  /**
+   * Must be within this week
+   */
+  thisWeek(message?: string): this {
+    this._rules.push({
+      type: 'thisWeek',
+      message,
+    });
+    return this;
+  }
+
+  /**
+   * Must be within this month
+   */
+  thisMonth(message?: string): this {
+    this._rules.push({
+      type: 'thisMonth',
+      message,
+    });
+    return this;
+  }
+
+  /**
+   * Must be within this year
+   */
+  thisYear(message?: string): this {
+    this._rules.push({
+      type: 'thisYear',
+      message,
+    });
+    return this;
+  }
+
+  /**
+   * Must be a weekday
+   */
+  weekday(message?: string): this {
+    this._rules.push({
+      type: 'weekday',
+      message,
+    });
+    return this;
+  }
+
+  /**
+   * Must be a weekend
+   */
+  weekend(message?: string): this {
+    this._rules.push({
+      type: 'weekend',
+      message,
+    });
+    return this;
+  }
+
+  /**
+   * Validate age is within range
+   */
+  age(min?: number, max?: number, message?: string): this {
+    this._rules.push({
+      type: 'age',
+      params: { min, max },
+      message,
+    });
+    return this;
+  }
+
+  /**
+   * Must be between two dates
+   */
+  between(start: Date | string, end: Date | string, message?: string): this {
+    this._rules.push({
+      type: 'dateBetween',
+      params: { start, end },
+      message,
+    });
+    return this;
+  }
 }
 
 // ============================================================================
@@ -607,6 +1049,75 @@ export class ArrayFieldBuilder<T> extends BaseFieldBuilder<T[]> {
         },
       },
       message: message || 'All items must be unique',
+    });
+    return this;
+  }
+
+  /**
+   * Must include a specific item
+   */
+  includes(item: T, message?: string): this {
+    this._rules.push({
+      type: 'includes',
+      params: { item },
+      message,
+    });
+    return this;
+  }
+
+  /**
+   * Must not include a specific item
+   */
+  excludes(item: T, message?: string): this {
+    this._rules.push({
+      type: 'excludes',
+      params: { item },
+      message,
+    });
+    return this;
+  }
+
+  /**
+   * Must be empty
+   */
+  empty(message?: string): this {
+    this._rules.push({
+      type: 'empty',
+      message,
+    });
+    return this;
+  }
+
+  /**
+   * Must not be empty
+   */
+  notEmpty(message?: string): this {
+    this._rules.push({
+      type: 'notEmpty',
+      message,
+    });
+    return this;
+  }
+
+  /**
+   * Must be sorted
+   */
+  sorted(order: 'asc' | 'desc' = 'asc', message?: string): this {
+    this._rules.push({
+      type: 'sorted',
+      params: { order },
+      message,
+    });
+    return this;
+  }
+
+  /**
+   * Must not contain falsy values
+   */
+  compact(message?: string): this {
+    this._rules.push({
+      type: 'compact',
+      message,
     });
     return this;
   }

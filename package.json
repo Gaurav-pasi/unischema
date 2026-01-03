@@ -1,6 +1,6 @@
 {
   "name": "unischema",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Schema-Driven, Isomorphic Form & Validation Engine",
   "author": "Gaurav Pasi <gauravpasi9594@gmail.com>",
   "license": "MIT",
@@ -31,6 +31,41 @@
       "types": "./dist/adapters/frontend/index.d.ts",
       "import": "./dist/adapters/frontend/index.mjs",
       "require": "./dist/adapters/frontend/index.js"
+    },
+    "./validators": {
+      "types": "./dist/validators/index.d.ts",
+      "import": "./dist/validators/index.mjs",
+      "require": "./dist/validators/index.js"
+    },
+    "./validators/string": {
+      "types": "./dist/validators/string.d.ts",
+      "import": "./dist/validators/string.mjs",
+      "require": "./dist/validators/string.js"
+    },
+    "./validators/number": {
+      "types": "./dist/validators/number.d.ts",
+      "import": "./dist/validators/number.mjs",
+      "require": "./dist/validators/number.js"
+    },
+    "./validators/date": {
+      "types": "./dist/validators/date.d.ts",
+      "import": "./dist/validators/date.mjs",
+      "require": "./dist/validators/date.js"
+    },
+    "./validators/array": {
+      "types": "./dist/validators/array.d.ts",
+      "import": "./dist/validators/array.mjs",
+      "require": "./dist/validators/array.js"
+    },
+    "./validators/object": {
+      "types": "./dist/validators/object.d.ts",
+      "import": "./dist/validators/object.mjs",
+      "require": "./dist/validators/object.js"
+    },
+    "./validators/common": {
+      "types": "./dist/validators/common.d.ts",
+      "import": "./dist/validators/common.mjs",
+      "require": "./dist/validators/common.js"
     }
   },
   "scripts": {

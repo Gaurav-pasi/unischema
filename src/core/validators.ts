@@ -4,6 +4,78 @@
 
 import type { ValidatorFn, ValidationError, ValidatorContext } from '../types';
 
+// Import split validators for tree-shaking
+import {
+  emailValidator,
+  urlValidator,
+  ipAddressValidator,
+  ipv6Validator,
+  alphaValidator,
+  alphanumericValidator,
+  numericValidator,
+  lowercaseValidator,
+  uppercaseValidator,
+  slugValidator,
+  hexValidator,
+  base64Validator,
+  jsonValidator,
+  lengthValidator,
+  containsValidator,
+  startsWithValidator,
+  endsWithValidator,
+} from '../validators/string';
+
+import {
+  portValidator,
+  latitudeValidator,
+  longitudeValidator,
+  percentageValidator,
+  betweenValidator as numberBetweenValidator,
+  divisibleByValidator,
+  multipleOfValidator,
+  evenValidator,
+  oddValidator,
+  safeValidator,
+  finiteValidator,
+} from '../validators/number';
+
+import {
+  todayValidator,
+  yesterdayValidator,
+  tomorrowValidator,
+  thisWeekValidator,
+  thisMonthValidator,
+  thisYearValidator,
+  weekdayValidator,
+  weekendValidator,
+  ageValidator,
+  betweenValidator as dateBetweenValidator,
+} from '../validators/date';
+
+import {
+  includesValidator,
+  excludesValidator,
+  emptyValidator,
+  notEmptyValidator,
+  sortedValidator,
+  compactValidator,
+} from '../validators/array';
+
+import {
+  keysValidator,
+  pickValidator,
+  omitValidator,
+  strictValidator,
+} from '../validators/object';
+
+import {
+  notMatchesValidator,
+  greaterThanValidator,
+  lessThanValidator,
+  whenValidator,
+  dependsOnValidator,
+} from '../validators/common';
+
 /**
  * Create a validation error
  */
@@ -190,29 +262,70 @@ export const ruleValidators: Record<string, ValidatorFn> = {
     return null;
   },
 
-  email: (value, params, context) => {
-    if (value === undefined || value === null || value === '') return null;
+  // String validators
+  email: emailValidator,
+  url: urlValidator,
+  ipAddress: ipAddressValidator,
+  ipv6: ipv6Validator,
+  alpha: alphaValidator,
+  alphanumeric: alphanumericValidator,
+  numeric: numericValidator,
+  lowercase: lowercaseValidator,
+  uppercase: uppercaseValidator,
+  slug: slugValidator,
+  hex: hexValidator,
+  base64: base64Validator,
+  json: jsonValidator,
+  length: lengthValidator,
+  contains: containsValidator,
+  startsWith: startsWithValidator,
+  endsWith: endsWithValidator,
 
-    const soft = params?.soft as boolean;
-    const message = params?.message as string | undefined;
+  // Number validators
+  port: portValidator,
+  latitude: latitudeValidator,
+  longitude: longitudeValidator,
+  percentage: percentageValidator,
+  numberBetween: numberBetweenValidator,
+  divisibleBy: divisibleByValidator,
+  multipleOf: multipleOfValidator,
+  even: evenValidator,
+  odd: oddValidator,
+  safe: safeValidator,
+  finite: finiteValidator,
 
-    if (typeof value !== 'string') {
-      return createError(context, 'INVALID_EMAIL', 'Email must be a string', soft);
-    }
+  // Date validators
+  today: todayValidator,
+  yesterday: yesterdayValidator,
+  tomorrow: tomorrowValidator,
+  thisWeek: thisWeekValidator,
+  thisMonth: thisMonthValidator,
+  thisYear: thisYearValidator,
+  weekday: weekdayValidator,
+  weekend: weekendValidator,
+  age: ageValidator,
+  dateBetween: dateBetweenValidator,
 
-    // RFC 5322 simplified email regex
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(value)) {
-      return createError(
-        context,
-        'INVALID_EMAIL',
-        message || 'Invalid email address',
-        soft
-      );
-    }
+  // Array validators
+  includes: includesValidator,
+  excludes: excludesValidator,
+  empty: emptyValidator,
+  notEmpty: notEmptyValidator,
+  sorted: sortedValidator,
+  compact: compactValidator,
 
-    return null;
-  },
+  // Object validators
+  keys: keysValidator,
+  pick: pickValidator,
+  omit: omitValidator,
+  strict: strictValidator,
+
+  // Cross-field validators
+  notMatches: notMatchesValidator,
+  greaterThan: greaterThanValidator,
+  lessThan: lessThanValidator,
+  when: whenValidator,
+  dependsOn: dependsOnValidator,
 
   pattern: (value, params, context) => {
     if (value === undefined || value === null || value === '') return null;
@@ -229,54 +342,6 @@ export const ruleValidators: Record<string, ValidatorFn> = {
         context,
         'PATTERN_MISMATCH',
         message || `Value does not match required pattern`,
-        soft
-      );
-    }
-
-    return null;
-  },
-
-  url: (value, params, context) => {
-    if (value === undefined || value === null || value === '') return null;
-
-    const soft = params?.soft as boolean;
-    const message = params?.message as string | undefined;
-
-    if (typeof value !== 'string') {
-      return createError(context, 'INVALID_URL', 'URL must be a string', soft);
-    }
-
-    try {
-      new URL(value);
-      return null;
-    } catch {
-      return createError(
-        context,
-        'INVALID_URL',
-        message || 'Invalid URL format',
-        soft
-      );
-    }
-  },
-
-  ipAddress: (value, params, context) => {
-    if (value === undefined || value === null || value === '') return null;
-
-    const soft = params?.soft as boolean;
-    const message = params?.message as string | undefined;
-
-    if (typeof value !== 'string') {
-      return createError(context, 'INVALID_IP', 'IP address must be a string', soft);
-    }
-
-    // Validate IPv4 address with proper octet range (0-255)
-    const ipv4Pattern = /^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-
-    if (!ipv4Pattern.test(value)) {
-      return createError(
-        context,
-        'INVALID_IP',
-        message || 'Invalid IP address format',
         soft
       );
     }
