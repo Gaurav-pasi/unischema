@@ -183,6 +183,7 @@ field.string()
   .max(length, message?)       // Maximum length
   .email(message?)             // Email format
   .url(message?)               // URL format
+  .ipAddress(message?)         // IPv4 address format (validates 0-255 range)
   .pattern(regex, message?)    // Regex pattern
   .enum(values, message?)      // Enum values
   .matches(field, message?)    // Match another field

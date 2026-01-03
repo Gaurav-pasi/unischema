@@ -1,6 +1,6 @@
 {
   "name": "unischema",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Schema-Driven, Isomorphic Form & Validation Engine",
   "author": "Gaurav Pasi <gauravpasi9594@gmail.com>",
   "license": "MIT",

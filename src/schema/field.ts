@@ -181,6 +181,17 @@ export class StringFieldBuilder extends BaseFieldBuilder<string> {
   }
 
   /**
+   * Validate as IP address (IPv4)
+   */
+  ipAddress(message?: string): this {
+    this._rules.push({
+      type: 'ipAddress',
+      message,
+    });
+    return this;
+  }
+
+  /**
    * Match a regex pattern
    */
   pattern(regex: RegExp | string, message?: string): this {

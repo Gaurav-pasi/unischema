@@ -259,6 +259,31 @@ export const ruleValidators: Record<string, ValidatorFn> = {
     }
   },
 
+  ipAddress: (value, params, context) => {
+    if (value === undefined || value === null || value === '') return null;
+
+    const soft = params?.soft as boolean;
+    const message = params?.message as string | undefined;
+
+    if (typeof value !== 'string') {
+      return createError(context, 'INVALID_IP', 'IP address must be a string', soft);
+    }
+
+    // Validate IPv4 address with proper octet range (0-255)
+    const ipv4Pattern = /^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+
+    if (!ipv4Pattern.test(value)) {
+      return createError(
+        context,
+        'INVALID_IP',
+        message || 'Invalid IP address format',
+        soft
+      );
+    }
+
+    return null;
+  },
+
   enum: (value, params, context) => {
     if (value === undefined || value === null) return null;
 
