@@ -2,7 +2,13 @@
  * Fluent field builder for schema definitions
  */
 
-import type { FieldDefinition, ValidationRule, ValidatorContext } from '../types';
+import type {
+  FieldDefinition,
+  ValidationRule,
+  ValidatorContext,
+  AsyncRefineFn,
+  AsyncValidationOptions
+} from '../types';
 
 // ============================================================================
 // Base Field Builder
@@ -14,6 +20,10 @@ export class BaseFieldBuilder<T> {
   protected _required: boolean = false;
   protected _defaultValue?: T;
   protected _meta: Record<string, unknown> = {};
+  protected _transforms: Array<(value: unknown) => unknown> = [];
+  protected _preprocess?: (value: unknown) => unknown;
+  protected _nullable: boolean = false;
+  protected _nullish: boolean = false;
 
   constructor(type: FieldDefinition['type']) {
     this._type = type;
@@ -74,6 +84,72 @@ export class BaseFieldBuilder<T> {
       message,
       soft: true,
     });
+    return this;
+  }
+
+  /**
+   * Add async custom validation
+   */
+  refineAsync(
+    validate: AsyncRefineFn<T>,
+    options?: AsyncValidationOptions | string
+  ): this {
+    const opts = typeof options === 'string' ? { message: options } : options || {};
+
+    this._rules.push({
+      type: 'refineAsync',
+      params: { validate },
+      message: opts.message,
+      soft: opts.soft,
+      async: true,
+      debounce: opts.debounce,
+      timeout: opts.timeout || 5000,
+    });
+    return this;
+  }
+
+  /**
+   * Add async soft validation (warning only)
+   */
+  refineAsyncSoft(
+    validate: AsyncRefineFn<T>,
+    options?: Omit<AsyncValidationOptions, 'soft'> | string
+  ): this {
+    const opts = typeof options === 'string' ? { message: options } : options || {};
+    return this.refineAsync(validate, { ...opts, soft: true });
+  }
+
+  /**
+   * Transform value before validation (applied after preprocessing)
+   */
+  transform<U = T>(transformer: (value: T) => U): BaseFieldBuilder<U> {
+    this._transforms.push(transformer as (value: unknown) => unknown);
+    return this as unknown as BaseFieldBuilder<U>;
+  }
+
+  /**
+   * Preprocess value before transformations and validation
+   * Useful for handling null/undefined values
+   */
+  preprocess(preprocessor: (value: unknown) => unknown): this {
+    this._preprocess = preprocessor;
+    return this;
+  }
+
+  /**
+   * Allow null values
+   */
+  nullable(): this {
+    this._nullable = true;
+    return this;
+  }
+
+  /**
+   * Allow null or undefined values
+   */
+  nullish(): this {
+    this._nullish = true;
+    this._nullable = true;
     return this;
   }
 
@@ -143,6 +219,10 @@ export class BaseFieldBuilder<T> {
       required: this._required,
       defaultValue: this._defaultValue,
       meta: Object.keys(this._meta).length > 0 ? this._meta : undefined,
+      transforms: this._transforms.length > 0 ? [...this._transforms] : undefined,
+      preprocess: this._preprocess,
+      nullable: this._nullable || undefined,
+      nullish: this._nullish || undefined,
     };
   }
 }
@@ -1130,6 +1210,10 @@ export class ArrayFieldBuilder<T> extends BaseFieldBuilder<T[]> {
       defaultValue: this._defaultValue,
       items: this._itemDef,
       meta: Object.keys(this._meta).length > 0 ? this._meta : undefined,
+      transforms: this._transforms.length > 0 ? [...this._transforms] : undefined,
+      preprocess: this._preprocess,
+      nullable: this._nullable || undefined,
+      nullish: this._nullish || undefined,
     };
   }
 }
@@ -1158,6 +1242,89 @@ export class ObjectFieldBuilder<T extends Record<string, unknown>> extends BaseF
       defaultValue: this._defaultValue,
       schema: this._schema,
       meta: Object.keys(this._meta).length > 0 ? this._meta : undefined,
+      transforms: this._transforms.length > 0 ? [...this._transforms] : undefined,
+      preprocess: this._preprocess,
+      nullable: this._nullable || undefined,
+      nullish: this._nullish || undefined,
     };
   }
 }
+
+// ============================================================================
+// Coercion Builders (Type Conversion)
+// ============================================================================
+
+/**
+ * Coercion namespace for automatic type conversion
+ */
+export const coerce = {
+  /**
+   * Coerce value to string
+   */
+  string(): StringFieldBuilder {
+    return new StringFieldBuilder().preprocess((value) => {
+      if (value === null || value === undefined) return value;
+      return String(value);
+    });
+  },
+
+  /**
+   * Coerce value to number
+   */
+  number(): NumberFieldBuilder {
+    return new NumberFieldBuilder().preprocess((value) => {
+      if (value === null || value === undefined) return value;
+      if (typeof value === 'number') return value;
+      if (typeof value === 'string') {
+        const parsed = parseFloat(value);
+        return isNaN(parsed) ? value : parsed;
+      }
+      if (typeof value === 'boolean') return value ? 1 : 0;
+      return value;
+    });
+  },
+
+  /**
+   * Coerce value to boolean
+   */
+  boolean(): BooleanFieldBuilder {
+    return new BooleanFieldBuilder().preprocess((value) => {
+      if (value === null || value === undefined) return value;
+      if (typeof value === 'boolean') return value;
+      if (typeof value === 'string') {
+        const lower = value.toLowerCase().trim();
+        if (lower === 'true' || lower === '1' || lower === 'yes' || lower === 'on') return true;
+        if (lower === 'false' || lower === '0' || lower === 'no' || lower === 'off') return false;
+      }
+      if (typeof value === 'number') return value !== 0;
+      return value;
+    });
+  },
+
+  /**
+   * Coerce value to date
+   */
+  date(): DateFieldBuilder {
+    return new DateFieldBuilder().preprocess((value) => {
+      if (value === null || value === undefined) return value;
+      if (value instanceof Date) return value;
+      if (typeof value === 'string' || typeof value === 'number') {
+        const date = new Date(value);
+        return isNaN(date.getTime()) ? value : date;
+      }
+      return value;
+    });
+  },
+
+  /**
+   * Coerce value to array
+   */
+  array<T>(itemBuilder?: BaseFieldBuilder<T>): ArrayFieldBuilder<T> {
+    return new ArrayFieldBuilder<T>(itemBuilder).preprocess((value) => {
+      if (value === null || value === undefined) return value;
+      if (Array.isArray(value)) return value;
+      // Convert single value to array
+      return [value];
+    }) as ArrayFieldBuilder<T>;
+  },
+};

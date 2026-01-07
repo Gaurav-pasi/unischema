@@ -13,6 +13,13 @@ export {
 } from './engine';
 
 export {
+  validateAsync,
+  validateSchemaAsync,
+  isValidAsync,
+  assertValidAsync,
+} from './async-engine';
+
+export {
   registerValidator,
   getValidator,
   getTypeValidator,

@@ -11,12 +11,18 @@ export type ValidationSeverity = 'hard' | 'soft';
 export interface ValidationError {
   /** Field path (e.g., "email" or "address.city") */
   field: string;
+  /** Path as array (e.g., ["address", "city"]) */
+  path?: string[];
   /** Error code for programmatic handling */
   code: string;
   /** Human-readable error message */
   message: string;
   /** Severity level - hard errors block submission, soft are warnings */
   severity: ValidationSeverity;
+  /** Value that was received (for context) */
+  received?: unknown;
+  /** Expected value or constraints (for context) */
+  expected?: unknown;
 }
 
 export interface ValidationResult {
@@ -26,6 +32,18 @@ export interface ValidationResult {
   hardErrors: ValidationError[];
   /** Warnings that don't block submission */
   softErrors: ValidationError[];
+  /** Errors aggregated by field path */
+  errorsByField?: Record<string, ValidationError[]>;
+}
+
+/** Validation options */
+export interface ValidationOptions {
+  /** Custom error message formatter */
+  errorMap?: (error: ValidationError) => ValidationError | { message: string };
+  /** Stop validation on first error */
+  abortEarly?: boolean;
+  /** Aggregate errors by field */
+  aggregateByField?: boolean;
 }
 
 // ============================================================================
@@ -49,6 +67,12 @@ export interface ValidationRule {
   message?: string;
   /** Is this a soft validation (warning only)? */
   soft?: boolean;
+  /** Is this an async validation? */
+  async?: boolean;
+  /** Debounce delay in ms for async validators */
+  debounce?: number;
+  /** Timeout in ms for async validators */
+  timeout?: number;
 }
 
 export interface FieldDefinition<T = unknown> {
@@ -66,6 +90,14 @@ export interface FieldDefinition<T = unknown> {
   items?: FieldDefinition;
   /** Field metadata */
   meta?: Record<string, unknown>;
+  /** Transform functions to apply to value */
+  transforms?: Array<(value: unknown) => unknown>;
+  /** Preprocess function to apply before validation */
+  preprocess?: (value: unknown) => unknown;
+  /** Allow null values */
+  nullable?: boolean;
+  /** Allow null or undefined values */
+  nullish?: boolean;
 }
 
 // ============================================================================
@@ -77,6 +109,12 @@ export interface SchemaDefinition {
   fields: Record<string, FieldDefinition>;
   /** Schema metadata */
   meta?: Record<string, unknown>;
+  /** Allow unknown keys to pass through */
+  passthrough?: boolean;
+  /** Strict mode - reject unknown keys */
+  strict?: boolean;
+  /** Catchall field definition for unknown keys */
+  catchall?: FieldDefinition;
 }
 
 // ============================================================================
@@ -118,6 +156,33 @@ export type ValidatorFn = (
   params: Record<string, unknown> | undefined,
   context: ValidatorContext
 ) => ValidationError | null;
+
+export type AsyncValidatorFn = (
+  value: unknown,
+  params: Record<string, unknown> | undefined,
+  context: ValidatorContext
+) => Promise<ValidationError | null>;
+
+/** Async refine function type - returns boolean or validation result object */
+export type AsyncRefineFn<T = unknown> = (
+  value: T
+) => Promise<boolean | { valid: boolean; message?: string }>;
+
+/** Options for async validation */
+export interface AsyncValidationOptions {
+  /** Custom error message */
+  message?: string;
+  /** Debounce delay in ms */
+  debounce?: number;
+  /** Timeout in ms (default: 5000) */
+  timeout?: number;
+  /** Is this a soft validation (warning only)? */
+  soft?: boolean;
+  /** Cache results (useful for expensive checks) */
+  cache?: boolean;
+  /** Cache TTL in seconds (default: 3600) */
+  cacheTTL?: number;
+}
 
 // ============================================================================
 // Enterprise-Compatible Response Types

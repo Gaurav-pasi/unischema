@@ -11,13 +11,17 @@ export function createError(
   context: ValidatorContext,
   code: string,
   message: string,
-  soft: boolean = false
+  soft: boolean = false,
+  received?: unknown,
+  expected?: unknown
 ): ValidationError {
   return {
     field: context.path,
     code,
     message,
     severity: soft ? 'soft' : 'hard',
+    received,
+    expected,
   };
 }
 

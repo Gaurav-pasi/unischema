@@ -83,13 +83,17 @@ function createError(
   context: ValidatorContext,
   code: string,
   message: string,
-  soft: boolean = false
+  soft: boolean = false,
+  received?: unknown,
+  expected?: unknown
 ): ValidationError {
   return {
     field: context.path,
     code,
     message,
     severity: soft ? 'soft' : 'hard',
+    received,
+    expected,
   };
 }
 
@@ -189,7 +193,9 @@ export const ruleValidators: Record<string, ValidatorFn> = {
           context,
           'MIN_VALUE',
           message || `Value must be at least ${min}`,
-          soft
+          soft,
+          value,
+          { min }
         );
       }
     }
@@ -200,7 +206,9 @@ export const ruleValidators: Record<string, ValidatorFn> = {
           context,
           'MIN_LENGTH',
           message || `Must be at least ${min} characters`,
-          soft
+          soft,
+          value,
+          { min }
         );
       }
     }
@@ -211,7 +219,9 @@ export const ruleValidators: Record<string, ValidatorFn> = {
           context,
           'MIN_ITEMS',
           message || `Must have at least ${min} items`,
-          soft
+          soft,
+          value,
+          { min }
         );
       }
     }
@@ -232,7 +242,9 @@ export const ruleValidators: Record<string, ValidatorFn> = {
           context,
           'MAX_VALUE',
           message || `Value must be at most ${max}`,
-          soft
+          soft,
+          value,
+          { max }
         );
       }
     }
@@ -243,7 +255,9 @@ export const ruleValidators: Record<string, ValidatorFn> = {
           context,
           'MAX_LENGTH',
           message || `Must be at most ${max} characters`,
-          soft
+          soft,
+          value,
+          { max }
         );
       }
     }
@@ -254,7 +268,9 @@ export const ruleValidators: Record<string, ValidatorFn> = {
           context,
           'MAX_ITEMS',
           message || `Must have at most ${max} items`,
-          soft
+          soft,
+          value,
+          { max }
         );
       }
     }

@@ -98,15 +98,144 @@ const emailProps = form.getFieldProps('email');
 
 ## 🎯 Features
 
-- ✅ **50+ Built-in Validators** - Email, URL, IPv4/IPv6, phone, coordinates, and more
+- ✅ **53+ Built-in Validators** - Email, URL, IPv4/IPv6, phone, coordinates, and more
+- ✅ **Async Validation** - Database checks, API validation with debouncing
+- ✅ **Data Transformation** - Transform & coerce values before validation
+- ✅ **Advanced Schema Composition** - deepPartial, passthrough, strict, catchall
 - ✅ **Isomorphic** - Same code runs in browser and Node.js
 - ✅ **TypeScript First** - Automatic type inference
 - ✅ **Hard & Soft Validation** - Errors vs warnings for enterprise apps
+- ✅ **Nullable/Nullish Support** - Proper null/undefined handling
 - ✅ **Tree-Shakeable** - Only bundle what you use (~2KB min+gzip)
 - ✅ **Framework Agnostic** - Works with React, Vue, Svelte, Angular, etc.
 - ✅ **Zero Dependencies** - Lightweight and fast
 
-## 📚 All Validators (v1.1.0)
+## 🆕 What's New in v1.2.0 - Production Ready!
+
+Phase 1 is complete! Unischema now includes powerful features for production applications:
+
+### Async Validation
+
+Validate against external APIs, databases, or async operations with built-in debouncing:
+
+```typescript
+const UserSchema = schema({
+  email: field.string()
+    .email()
+    .refineAsync(async (email) => {
+      const exists = await checkEmailExists(email);
+      return !exists || { message: 'Email already registered' };
+    }, { debounce: 500, timeout: 5000 }),
+
+  username: field.string()
+    .refineAsync(async (name) => {
+      const available = await api.checkUsername(name);
+      return available;
+    }, { debounce: 300, message: 'Username taken' })
+});
+
+// Use async validation
+const result = await validateAsync(UserSchema.definition, data);
+```
+
+### Data Transformation & Coercion
+
+Transform and coerce values before validation:
+
+```typescript
+// Transform strings
+const LoginSchema = schema({
+  email: field.string()
+    .transform(s => s.trim())
+    .transform(s => s.toLowerCase())
+    .email(),
+
+  name: field.string()
+    .transform(s => s.trim())
+    .transform(s => s.replace(/\s+/g, ' '))  // Normalize whitespace
+});
+
+// Type coercion from form inputs
+const FormSchema = schema({
+  age: coerce.number().min(18),          // "25" → 25
+  active: coerce.boolean(),              // "true" → true
+  startDate: coerce.date(),              // "2024-01-01" → Date
+  tags: coerce.array(field.string()),    // "javascript" → ["javascript"]
+});
+
+// Preprocessing for nullable values
+const ProfileSchema = schema({
+  bio: field.string()
+    .preprocess(s => s?.trim())  // Handle null/undefined safely
+    .nullable()
+});
+```
+
+### Advanced Schema Composition
+
+More flexible schema manipulation:
+
+```typescript
+const BaseSchema = schema({
+  id: field.string(),
+  name: field.string().required(),
+  email: field.string().email().required(),
+});
+
+// Deep partial - make all fields optional recursively
+const PartialSchema = deepPartial(BaseSchema);
+
+// Passthrough - allow unknown keys
+const FlexibleSchema = passthrough(BaseSchema);
+
+// Strict mode - reject unknown keys
+const StrictSchema = strict(BaseSchema);
+
+// Catchall - handle unknown keys with validation
+const CatchAllSchema = catchall(BaseSchema, field.string());
+
+// Make specific fields required/optional
+const RequiredFields = required(BaseSchema, ['name', 'email']);
+const OptionalFields = optional(BaseSchema, ['email']);
+```
+
+### Nullable & Nullish Handling
+
+Better null/undefined value handling:
+
+```typescript
+const UserSchema = schema({
+  // Allow null
+  middleName: field.string().nullable(),  // string | null
+
+  // Allow null or undefined
+  bio: field.string().nullish(),          // string | null | undefined
+
+  // Required but nullable
+  avatar: field.string().nullable().required(),
+});
+```
+
+### Enhanced Error Context
+
+Get detailed error information:
+
+```typescript
+const result = validate(schema({ age: field.number().min(18) }), { age: 15 });
+
+result.hardErrors[0];
+// {
+//   field: "age",
+//   code: "MIN_VALUE",
+//   message: "Value must be at least 18",
+//   severity: "hard",
+//   received: 15,     // ✨ The actual value
+//   expected: { min: 18 }  // ✨ The constraint that failed
+//   path: ["age"]     // ✨ Path as array
+// }
+```
+
+## 📚 All Validators (v1.2.0)
 
 ### String Validators (17)
 
@@ -714,17 +843,37 @@ Import only what you use for minimal bundle size.
 
 ```typescript
 import {
+  // Schema creation
   schema,           // Create schema
   field,            // Field builders
+  coerce,           // Type coercion builders
+
+  // Sync validation
   validate,         // Validate data
   validateSchema,   // Validate with schema
   isValid,          // Boolean validation
   assertValid,      // Throws if invalid
+
+  // Async validation (v1.2.0)
+  validateAsync,    // Async validate data
+  validateSchemaAsync, // Async validate with schema
+  isValidAsync,     // Async boolean validation
+  assertValidAsync, // Async throws if invalid
+
+  // Schema composition
   extend,           // Extend schema
   pick,             // Pick fields
   omit,             // Omit fields
   merge,            // Merge schemas
   partial,          // Make all optional
+  deepPartial,      // Make all optional recursively (v1.2.0)
+  passthrough,      // Allow unknown keys (v1.2.0)
+  strict,           // Reject unknown keys (v1.2.0)
+  catchall,         // Validate unknown keys (v1.2.0)
+  required,         // Make specific fields required (v1.2.0)
+  optional,         // Make specific fields optional (v1.2.0)
+
+  // Type inference
   type InferInput,  // Input type
   type InferOutput  // Output type
 } from 'unischema';

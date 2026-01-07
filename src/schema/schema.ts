@@ -120,6 +120,140 @@ export function partial<T extends Record<string, unknown>>(
 }
 
 /**
+ * Make all fields optional recursively (deep partial)
+ */
+export function deepPartial<T extends Record<string, unknown>>(
+  baseSchema: SchemaBuilder<T>
+): SchemaBuilder<DeepPartial<T>> {
+  const deepPartialFields: Record<string, BaseFieldBuilder<unknown>> = {};
+  for (const [key, builder] of Object.entries(baseSchema._fields)) {
+    const clonedBuilder = Object.create(Object.getPrototypeOf(builder));
+    Object.assign(clonedBuilder, builder);
+    clonedBuilder._required = false;
+
+    // Handle nested objects
+    if (builder instanceof ObjectFieldBuilder) {
+      const fieldDef = builder.build();
+      if (fieldDef.schema) {
+        // Recursively apply deep partial to nested schema
+        const nestedFields: Record<string, BaseFieldBuilder<unknown>> = {};
+        for (const [nestedKey, nestedDef] of Object.entries(fieldDef.schema.fields)) {
+          // Create a builder from the field definition
+          const nestedBuilder = Object.create(BaseFieldBuilder.prototype);
+          Object.assign(nestedBuilder, {
+            _type: nestedDef.type,
+            _rules: nestedDef.rules || [],
+            _required: false, // Make optional
+            _defaultValue: nestedDef.defaultValue,
+            _meta: nestedDef.meta || {},
+            _transforms: nestedDef.transforms || [],
+            _preprocess: nestedDef.preprocess,
+            _nullable: nestedDef.nullable || false,
+            _nullish: nestedDef.nullish || false,
+          });
+          nestedFields[nestedKey] = nestedBuilder;
+        }
+        // Create deep partial of nested schema
+        const nestedSchema = schema(nestedFields);
+        const deepNestedSchema = deepPartial(nestedSchema);
+        clonedBuilder._schema = deepNestedSchema.definition;
+      }
+    }
+
+    deepPartialFields[key] = clonedBuilder;
+  }
+  return schema(deepPartialFields) as SchemaBuilder<DeepPartial<T>>;
+}
+
+/**
+ * Allow unknown keys to pass through
+ */
+export function passthrough<T extends Record<string, unknown>>(
+  baseSchema: SchemaBuilder<T>
+): SchemaBuilder<T> {
+  const result = schema(baseSchema._fields) as SchemaBuilder<T>;
+  result.definition.passthrough = true;
+  return result;
+}
+
+/**
+ * Strict mode - reject unknown keys
+ */
+export function strict<T extends Record<string, unknown>>(
+  baseSchema: SchemaBuilder<T>
+): SchemaBuilder<T> {
+  const result = schema(baseSchema._fields) as SchemaBuilder<T>;
+  result.definition.strict = true;
+  return result;
+}
+
+/**
+ * Default handler for unknown keys (catchall)
+ */
+export function catchall<T extends Record<string, unknown>>(
+  baseSchema: SchemaBuilder<T>,
+  fieldBuilder: BaseFieldBuilder<unknown>
+): SchemaBuilder<T> {
+  const result = schema(baseSchema._fields) as SchemaBuilder<T>;
+  result.definition.catchall = fieldBuilder.build();
+  return result;
+}
+
+/**
+ * Make specific fields required
+ */
+export function required<
+  T extends Record<string, unknown>,
+  K extends keyof T
+>(
+  baseSchema: SchemaBuilder<T>,
+  keys: K[]
+): SchemaBuilder<T> {
+  const keySet = new Set(keys as string[]);
+  const newFields: Record<string, BaseFieldBuilder<unknown>> = {};
+
+  for (const [key, builder] of Object.entries(baseSchema._fields)) {
+    if (keySet.has(key)) {
+      const clonedBuilder = Object.create(Object.getPrototypeOf(builder));
+      Object.assign(clonedBuilder, builder);
+      clonedBuilder._required = true;
+      newFields[key] = clonedBuilder;
+    } else {
+      newFields[key] = builder;
+    }
+  }
+
+  return schema(newFields) as SchemaBuilder<T>;
+}
+
+/**
+ * Make specific fields optional
+ */
+export function optional<
+  T extends Record<string, unknown>,
+  K extends keyof T
+>(
+  baseSchema: SchemaBuilder<T>,
+  keys: K[]
+): SchemaBuilder<T> {
+  const keySet = new Set(keys as string[]);
+  const newFields: Record<string, BaseFieldBuilder<unknown>> = {};
+
+  for (const [key, builder] of Object.entries(baseSchema._fields)) {
+    if (keySet.has(key)) {
+      const clonedBuilder = Object.create(Object.getPrototypeOf(builder));
+      Object.assign(clonedBuilder, builder);
+      clonedBuilder._required = false;
+      newFields[key] = clonedBuilder;
+    } else {
+      newFields[key] = builder;
+    }
+  }
+
+  return schema(newFields) as SchemaBuilder<T>;
+}
+
+/**
  * Merge multiple schemas
  */
 export function merge<
@@ -153,6 +287,11 @@ export type InferInput<S> = S extends SchemaBuilder<infer T> ? T : never;
 
 /** Infer output type from a schema (validated data) */
 export type InferOutput<S> = S extends SchemaBuilder<infer T> ? T : never;
+
+/** Deep partial type helper */
+export type DeepPartial<T> = T extends object ? {
+  [P in keyof T]?: DeepPartial<T[P]>;
+} : T;
 
 // ============================================================================
 // Type Guards

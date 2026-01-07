@@ -8,6 +8,7 @@ import type {
   FieldDefinition,
   SchemaDefinition,
   ValidatorContext,
+  ValidationOptions,
 } from '../types';
 
 import { getValidator, getTypeValidator } from './validators';
@@ -21,13 +22,39 @@ function validateField(
   context: ValidatorContext
 ): ValidationError[] {
   const errors: ValidationError[] = [];
+  let processedValue = value;
+
+  // Check for nullish values first
+  if (value === null || value === undefined) {
+    if (fieldDef.nullish || (fieldDef.nullable && value === null)) {
+      // Allow null/undefined
+      if (!fieldDef.required) {
+        return errors; // Valid nullish optional field
+      }
+    }
+  }
+
+  // Apply preprocessing if defined
+  if (fieldDef.preprocess) {
+    processedValue = fieldDef.preprocess(value);
+  }
+
+  // Apply transforms
+  if (fieldDef.transforms && fieldDef.transforms.length > 0) {
+    for (const transform of fieldDef.transforms) {
+      processedValue = transform(processedValue);
+    }
+  }
 
   // Type validation first
   const typeValidator = getTypeValidator(fieldDef.type);
   if (typeValidator) {
-    const typeError = typeValidator(value, undefined, context);
+    const typeError = typeValidator(processedValue, undefined, context);
     if (typeError) {
-      errors.push(typeError);
+      errors.push({
+        ...typeError,
+        path: context.path.split('.').filter(p => p !== ''),
+      });
       // If type is wrong, skip other validations
       return errors;
     }
@@ -35,17 +62,29 @@ function validateField(
 
   // Required validation
   if (fieldDef.required) {
-    const requiredValidator = getValidator('required');
-    if (requiredValidator) {
-      const error = requiredValidator(value, undefined, context);
-      if (error) {
-        errors.push(error);
-        // If required and missing, skip other validations
-        return errors;
+    // Check if value is missing, considering nullable/nullish
+    const isMissing =
+      (processedValue === undefined && !fieldDef.nullish) ||
+      (processedValue === null && !fieldDef.nullable && !fieldDef.nullish) ||
+      (processedValue === '' && !fieldDef.nullable && !fieldDef.nullish) ||
+      (Array.isArray(processedValue) && processedValue.length === 0);
+
+    if (isMissing) {
+      const requiredValidator = getValidator('required');
+      if (requiredValidator) {
+        const error = requiredValidator(processedValue, undefined, context);
+        if (error) {
+          errors.push({
+            ...error,
+            path: context.path.split('.').filter(p => p !== ''),
+          });
+          // If required and missing, skip other validations
+          return errors;
+        }
       }
     }
   } else if (value === undefined || value === null || value === '') {
-    // Skip other validations for optional empty fields
+    // Skip other validations for optional empty fields (check original value, not processed)
     return errors;
   }
 
@@ -63,27 +102,30 @@ function validateField(
       message: rule.message,
     };
 
-    const error = validator(value, params, context);
+    const error = validator(processedValue, params, context);
     if (error) {
-      errors.push(error);
+      errors.push({
+        ...error,
+        path: context.path.split('.').filter(p => p !== ''),
+      });
     }
   }
 
   // Nested schema validation (for object fields)
-  if (fieldDef.type === 'object' && fieldDef.schema && value !== null && value !== undefined) {
-    const nestedResult = validateSchema(fieldDef.schema, value as Record<string, unknown>, context.path, context.root);
+  if (fieldDef.type === 'object' && fieldDef.schema && processedValue !== null && processedValue !== undefined) {
+    const nestedResult = validateSchema(fieldDef.schema, processedValue as Record<string, unknown>, context.path, context.root);
     errors.push(...nestedResult.hardErrors, ...nestedResult.softErrors);
   }
 
   // Array item validation
-  if (fieldDef.type === 'array' && fieldDef.items && Array.isArray(value)) {
-    for (let i = 0; i < value.length; i++) {
+  if (fieldDef.type === 'array' && fieldDef.items && Array.isArray(processedValue)) {
+    for (let i = 0; i < processedValue.length; i++) {
       const itemContext: ValidatorContext = {
         path: `${context.path}[${i}]`,
         root: context.root,
-        parent: value,
+        parent: processedValue,
       };
-      const itemErrors = validateField(fieldDef.items, value[i], itemContext);
+      const itemErrors = validateField(fieldDef.items, processedValue[i], itemContext);
       errors.push(...itemErrors);
     }
   }
@@ -98,7 +140,8 @@ export function validateSchema(
   schema: SchemaDefinition,
   data: Record<string, unknown>,
   basePath: string = '',
-  root?: unknown
+  root?: unknown,
+  options?: ValidationOptions
 ): ValidationResult {
   const hardErrors: ValidationError[] = [];
   const softErrors: ValidationError[] = [];
@@ -117,20 +160,64 @@ export function validateSchema(
 
     const errors = validateField(fieldDef, value, context);
 
-    for (const error of errors) {
+    for (let error of errors) {
+      // Apply errorMap if provided
+      if (options?.errorMap) {
+        const mapped = options.errorMap(error);
+        if ('message' in mapped && !('field' in mapped)) {
+          // Simple message mapping
+          error = { ...error, message: mapped.message };
+        } else {
+          // Full error object mapping
+          error = mapped as ValidationError;
+        }
+      }
+
       if (error.severity === 'soft') {
         softErrors.push(error);
       } else {
         hardErrors.push(error);
+        // Abort early if requested
+        if (options?.abortEarly) {
+          return buildValidationResult(hardErrors, softErrors, options);
+        }
       }
     }
   }
 
-  return {
+  return buildValidationResult(hardErrors, softErrors, options);
+}
+
+/**
+ * Build validation result with optional field aggregation
+ */
+function buildValidationResult(
+  hardErrors: ValidationError[],
+  softErrors: ValidationError[],
+  options?: ValidationOptions
+): ValidationResult {
+  const result: ValidationResult = {
     valid: hardErrors.length === 0,
     hardErrors,
     softErrors,
   };
+
+  // Aggregate errors by field if requested
+  if (options?.aggregateByField) {
+    const errorsByField: Record<string, ValidationError[]> = {};
+
+    for (const error of [...hardErrors, ...softErrors]) {
+      const field = error.field;
+      if (!errorsByField[field]) {
+        errorsByField[field] = [];
+      }
+      errorsByField[field].push(error);
+    }
+
+    result.errorsByField = errorsByField;
+  }
+
+  return result;
 }
 
 /**
@@ -138,16 +225,21 @@ export function validateSchema(
  */
 export function validate<T extends Record<string, unknown>>(
   schema: SchemaDefinition,
-  data: T
+  data: T,
+  options?: ValidationOptions
 ): ValidationResult {
-  return validateSchema(schema, data);
+  return validateSchema(schema, data, '', undefined, options);
 }
 
 /**
  * Check if data is valid (no hard errors)
  */
-export function isValid(schema: SchemaDefinition, data: Record<string, unknown>): boolean {
-  return validate(schema, data).valid;
+export function isValid(
+  schema: SchemaDefinition,
+  data: Record<string, unknown>,
+  options?: ValidationOptions
+): boolean {
+  return validate(schema, data, options).valid;
 }
 
 /**
@@ -155,9 +247,10 @@ export function isValid(schema: SchemaDefinition, data: Record<string, unknown>)
  */
 export function assertValid<T extends Record<string, unknown>>(
   schema: SchemaDefinition,
-  data: T
+  data: T,
+  options?: ValidationOptions
 ): T {
-  const result = validate(schema, data);
+  const result = validate(schema, data, options);
   if (!result.valid) {
     const error = new Error('Validation failed');
     (error as Error & { errors: ValidationError[] }).errors = result.hardErrors;

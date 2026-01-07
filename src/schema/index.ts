@@ -8,11 +8,18 @@ export {
   pick,
   omit,
   partial,
+  deepPartial,
+  passthrough,
+  strict,
+  catchall,
+  required,
+  optional,
   merge,
   field,
   type InferInput,
   type InferOutput,
   type SchemaBuilder,
+  type DeepPartial,
 } from './schema';
 
 export {
@@ -24,4 +31,5 @@ export {
   ArrayFieldBuilder,
   ObjectFieldBuilder,
   EnumFieldBuilder,
+  coerce,
 } from './field';

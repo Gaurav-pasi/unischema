@@ -25,6 +25,7 @@
 // ============================================================================
 
 export {
+  // Sync validation
   validate,
   validateSchema,
   isValid,
@@ -32,6 +33,12 @@ export {
   mergeResults,
   validResult,
   errorResult,
+  // Async validation
+  validateAsync,
+  validateSchemaAsync,
+  isValidAsync,
+  assertValidAsync,
+  // Validators
   registerValidator,
   getValidator,
   getTypeValidator,
@@ -49,11 +56,19 @@ export {
   pick,
   omit,
   partial,
+  deepPartial,
+  passthrough,
+  strict,
+  catchall,
+  required,
+  optional,
   merge,
   field,
+  coerce,
   type InferInput,
   type InferOutput,
   type SchemaBuilder,
+  type DeepPartial,
   BaseFieldBuilder,
   StringFieldBuilder,
   NumberFieldBuilder,
@@ -72,12 +87,16 @@ export type {
   ValidationSeverity,
   ValidationError,
   ValidationResult,
+  ValidationOptions,
   FieldType,
   ValidationRule,
   FieldDefinition,
   SchemaDefinition,
   ValidatorContext,
   ValidatorFn,
+  AsyncValidatorFn,
+  AsyncRefineFn,
+  AsyncValidationOptions,
   EnterpriseValidationResponse,
 } from './types';
 
