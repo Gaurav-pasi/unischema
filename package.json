@@ -1,6 +1,6 @@
 {
   "name": "unischema",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "TypeScript-first schema validation library with 53+ validators, async validation, transforms, hard/soft errors. Alternative to Zod, Yup, Joi. Works everywhere (browser, Node.js, serverless).",
   "author": "Gaurav Pasi <gauravpasi9594@gmail.com>",
   "license": "MIT",
