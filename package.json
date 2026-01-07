@@ -124,7 +124,8 @@
     "sanitize",
     "parse",
     "validate",
-    "check"
+    "check",
+    "unischema"
   ],
   "devDependencies": {
     "@types/express": "^5.0.6",
